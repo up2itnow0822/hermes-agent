@@ -636,17 +636,16 @@ Configure in `.claude/settings.json` (project) or `~/.claude/settings.json` (glo
 
 ## MCP Integration
 
-Add external tool servers for databases, APIs, and services:
+Add external tool servers for databases, APIs, and services. Prefer publisher-maintained servers (vendor HTTP endpoints, or packages the publisher still ships).
+
+**Do not** `npx` archived `@modelcontextprotocol/server-*` reference packages (including `server-github` and `server-filesystem`) or archived `@anthropic-ai/server-*` reference packages (including `server-puppeteer` and `server-postgres`). Those examples are stale and must not be copied. Use publisher-maintained allowlisted servers only.
 
 ```
-# GitHub integration
-terminal(command="claude mcp add -s user github -- npx @modelcontextprotocol/server-github", timeout=30)
+# HTTP / vendor-hosted MCP (preferred when the publisher offers one)
+terminal(command="claude mcp add --transport http -s user linear https://mcp.linear.app/mcp", timeout=30)
 
-# PostgreSQL queries
-terminal(command="claude mcp add -s local postgres -- npx @anthropic-ai/server-postgres --connection-string postgresql://localhost/mydb", timeout=30)
-
-# Puppeteer for web testing
-terminal(command="claude mcp add puppeteer -- npx @anthropic-ai/server-puppeteer", timeout=30)
+# Local stdio: only a command the publisher currently maintains — never archived @modelcontextprotocol/server-* packages
+terminal(command="claude mcp add -s local my-server -- <publisher-maintained-stdio-command>", timeout=30)
 ```
 
 ### MCP Scopes

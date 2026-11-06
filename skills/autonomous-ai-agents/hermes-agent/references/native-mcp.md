@@ -6,8 +6,8 @@ Hermes Agent has a built-in MCP client that connects to MCP servers at startup, 
 
 Use this whenever you want to:
 - Connect to MCP servers and use their tools from within Hermes Agent
-- Add external capabilities (filesystem access, GitHub, databases, APIs) via MCP
-- Run local stdio-based MCP servers (npx, uvx, or any command)
+- Add external capabilities (vendor APIs, databases, hosted tools) via MCP
+- Run local stdio-based MCP servers (npx, uvx, or any command) from publisher-maintained packages
 - Connect to remote HTTP/StreamableHTTP MCP servers
 - Have MCP tools auto-discovered and available in every conversation
 
@@ -16,7 +16,7 @@ For ad-hoc, one-off MCP tool calls from the terminal without configuring anythin
 ## Prerequisites
 
 - **mcp Python package** -- optional dependency; install with `pip install mcp`. If not installed, MCP support is silently disabled.
-- **Node.js** -- required for `npx`-based MCP servers (most community servers)
+- **Node.js** -- required only for `npx`-based MCP servers that a publisher still maintains. Do **not** `npx` archived `@modelcontextprotocol/server-*` reference packages or unmaintained Puppeteer MCP packages.
 - **uv** -- required for `uvx`-based MCP servers (Python-based servers)
 
 Install the MCP SDK:
@@ -29,22 +29,32 @@ uv pip install mcp
 
 ## Quick Start
 
-Add MCP servers to `~/.hermes/config.yaml` under the `mcp_servers` key:
+Prefer the Nous-allowlisted catalog over hand-written `npx` lines:
+
+```bash
+hermes mcp                # interactive picker
+hermes mcp catalog        # plain-text list
+hermes mcp install linear # install a catalog entry by name
+```
+
+**Do not** `npx` archived `@modelcontextprotocol/server-*` reference packages (including `server-filesystem` and `server-github`) or unmaintained Puppeteer MCP packages. Use publisher-maintained allowlisted servers only.
+
+To wire a server by hand, add it under `mcp_servers` in `~/.hermes/config.yaml`. Catalog HTTP example (Linear):
 
 ```yaml
 mcp_servers:
-  time:
-    command: "uvx"
-    args: ["mcp-server-time"]
+  linear:
+    url: "https://mcp.linear.app/mcp"
+    auth: oauth
 ```
 
 Restart Hermes Agent. On startup it will:
 1. Connect to the server
 2. Discover available tools
-3. Register them with the prefix `mcp_time_*`
+3. Register them with the prefix `mcp_{server_name}_*`
 4. Inject them into all platform toolsets
 
-You can then use the tools naturally -- just ask the agent to get the current time.
+You can then use the tools naturally -- just ask the agent to use the connected server.
 
 ## Configuration Reference
 
@@ -56,7 +66,7 @@ Each entry under `mcp_servers` is a server name mapped to its config. There are 
 mcp_servers:
   server_name:
     command: "npx"             # (required) executable to run
-    args: ["-y", "pkg-name"]   # (optional) command arguments, default: []
+    args: ["-y", "pkg-name"]   # publisher-maintained package only; never archived @modelcontextprotocol/server-*
     env:                       # (optional) environment variables for the subprocess
       SOME_API_KEY: "value"
     timeout: 120               # (optional) per-tool-call timeout in seconds, default: 120
@@ -138,10 +148,12 @@ The most common transport. Hermes launches the MCP server as a subprocess and co
 
 ```yaml
 mcp_servers:
-  filesystem:
+  my_server:
     command: "npx"
-    args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
+    args: ["-y", "<publisher-maintained-package>"]
 ```
+
+Do **not** substitute archived `@modelcontextprotocol/server-*` reference packages (including `server-filesystem` and `server-github`) or unmaintained Puppeteer MCP packages. Prefer `hermes mcp install <name>` from the allowlisted catalog.
 
 The subprocess inherits a **filtered** environment (see Security section below) plus any variables you specify in `env`.
 
@@ -172,12 +184,12 @@ All other environment variables (API keys, tokens, secrets) are excluded unless 
 
 ```yaml
 mcp_servers:
-  github:
+  my_server:
     command: "npx"
-    args: ["-y", "@modelcontextprotocol/server-github"]
+    args: ["-y", "<publisher-maintained-package>"]
     env:
       # Only this token is passed to the subprocess
-      GITHUB_PERSONAL_ACCESS_TOKEN: "ghp_..."
+      SOME_API_KEY: "value"
 ```
 
 ### Credential Stripping in Error Messages
@@ -243,31 +255,30 @@ mcp_servers:
 
 Registers tools like `mcp_time_get_current_time`.
 
-### Filesystem Server (npx)
+### Catalog HTTP Server (preferred)
 
 ```yaml
 mcp_servers:
-  filesystem:
-    command: "npx"
-    args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/documents"]
-    timeout: 30
+  linear:
+    url: "https://mcp.linear.app/mcp"
+    auth: oauth
 ```
 
-Registers tools like `mcp_filesystem_read_file`, `mcp_filesystem_write_file`, `mcp_filesystem_list_directory`.
+Install with `hermes mcp install linear` instead of hand-writing this. GitHub is deliberately **not** in the catalog — use the bundled `github/*` skills and the `gh` CLI.
 
-### GitHub Server with Authentication
+### Stdio Server with Explicit Credentials
 
 ```yaml
 mcp_servers:
-  github:
+  my_server:
     command: "npx"
-    args: ["-y", "@modelcontextprotocol/server-github"]
+    args: ["-y", "<publisher-maintained-package>"]
     env:
-      GITHUB_PERSONAL_ACCESS_TOKEN: "ghp_xxxxxxxxxxxxxxxxxxxx"
+      SOME_API_KEY: "value"
     timeout: 60
 ```
 
-Registers tools like `mcp_github_list_issues`, `mcp_github_create_pull_request`, etc.
+Never copy archived `@modelcontextprotocol/server-*` or unmaintained Puppeteer MCP package names into `args`.
 
 ### Remote HTTP Server
 
@@ -290,15 +301,9 @@ mcp_servers:
     command: "uvx"
     args: ["mcp-server-time"]
 
-  filesystem:
-    command: "npx"
-    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
-
-  github:
-    command: "npx"
-    args: ["-y", "@modelcontextprotocol/server-github"]
-    env:
-      GITHUB_PERSONAL_ACCESS_TOKEN: "ghp_xxxxxxxxxxxxxxxxxxxx"
+  linear:
+    url: "https://mcp.linear.app/mcp"
+    auth: oauth
 
   company_api:
     url: "https://mcp.internal.company.com/mcp"
