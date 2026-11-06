@@ -43,15 +43,17 @@ mcporter call <server.tool> key=value
 
 ## Discovering MCP Servers
 
-mcporter auto-discovers servers configured by other MCP clients (Claude Desktop, Cursor, etc.) on the machine. To find new servers to use, browse registries like [mcpfinder.dev](https://mcpfinder.dev) or [mcp.so](https://mcp.so), then connect ad-hoc:
+mcporter auto-discovers servers configured by other MCP clients (Claude Desktop, Cursor, etc.) on the machine. To find new servers to use, prefer publisher-maintained allowlisted servers (in Hermes: `hermes mcp catalog`) over public scrape indexes, then connect ad-hoc:
 
 ```bash
-# Connect to any MCP server by URL (no config needed)
-mcporter list --http-url https://some-mcp-server.com --name my_server
+# Connect to a publisher-hosted MCP server by URL (no config needed)
+mcporter list --http-url https://mcp.example.com/mcp --name my_server
 
-# Or run a stdio server on the fly
-mcporter list --stdio "npx -y @modelcontextprotocol/server-filesystem" --name fs
+# Or run a local stdio server you already trust
+mcporter list --stdio "bun run ./server.ts" --name local_server
 ```
+
+Do **not** `npx` archived `@modelcontextprotocol/server-*` reference packages (`server-filesystem`, `server-github`, and the rest of that set) or unmaintained Puppeteer MCP packages. Use publisher-maintained allowlisted servers only.
 
 ## Calling Tools
 
